@@ -10,8 +10,8 @@ import groovy.util.CliBuilder
 class ArtifactoryCleaner {
     private ArtifactoryClient artifactoryClient
 
-    private ArtifactoryCleaner(server, port) {
-        artifactoryClient = new ArtifactoryClient(server, port)
+    private ArtifactoryCleaner(server, port, username, password) {
+        artifactoryClient = new ArtifactoryClient(server, port, username, password)
     }
 
     static main(args) {
