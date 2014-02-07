@@ -21,19 +21,21 @@ class ArtifactoryCleaner {
         cli.m(longOpt:'months','all artifacts older than monts will be deleted, exception is newest of each major.minor', required: true, args: 3)
         cli.P(longOpt:'port','port on server', required: true, args: 4)
         def options = cli.parse(args)
-
+        if(options == null) {
+            return
+        }
         def paths = options['paths'].split(',')
 
         def server = options['server']
         def port = options['port']
-        def months = options['months']
+        def months = Integer.parseInt options['months']
         def cleaner = new ArtifactoryCleaner(server, port)
 
         println "server: $server:$port paths: $paths months: $months"
-        cleaner.start paths months
+        cleaner.start(paths, months)
     }
 
-    private start(String[] paths, months) {
+    private start(String[] paths, int months) {
         long t0 = System.currentTimeMillis()
         def monthsAgo = getDateMonthsAgo months
         List<DavResource> oldArtifacts = new ArrayList<>()
