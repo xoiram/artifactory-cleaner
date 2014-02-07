@@ -3,25 +3,21 @@ package no.embriq.utils
 import com.github.sardine.DavResource
 import com.github.sardine.Sardine
 import com.github.sardine.SardineFactory
+@Grab(group='org.codehaus.groovy.modules.http-builder', module='http-builder', version='0.5.2' )
 import groovyx.net.http.AuthConfig
 import groovyx.net.http.HTTPBuilder
 import groovyx.net.http.RESTClient
 import org.apache.http.auth.Credentials
 import org.apache.http.auth.UsernamePasswordCredentials
 import org.apache.http.impl.auth.DigestScheme
-
 import static groovyx.net.http.Method.DELETE
-//import static groovyx.net.http.ContentType.TEXT
-//@Grapes(
-//        @Grab(group='com.github.lookfirst',module='sardine',version='5.0.1')
-//)
 
 class ArtifactoryClient {
     Sardine sf = SardineFactory.begin()
 
     def exclusion = ["embriq-parent"]
 
-    def baseUrl = "http://artifactory.embriq.no:8080"
+    def baseUrl = "http://sonar.embriq.no:8080"
 
     List<DavResource> getArtifacts(String path) {
         def url = "${baseUrl}/${path}"

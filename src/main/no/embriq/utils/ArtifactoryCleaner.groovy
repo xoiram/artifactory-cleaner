@@ -1,5 +1,9 @@
 package no.embriq.utils
-
+@Grapes([
+	@Grab(group='com.github.lookfirst',module='sardine',version='5.0.1'),
+	@Grab( group='org.slf4j', module='slf4j-api', version='1.6.2' ),
+	@Grab( group='org.slf4j', module='slf4j-simple', version='1.6.2' )
+])
 import com.github.sardine.DavResource
 
 class ArtifactoryCleaner {
