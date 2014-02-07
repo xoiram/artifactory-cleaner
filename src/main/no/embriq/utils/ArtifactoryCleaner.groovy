@@ -51,7 +51,7 @@ class ArtifactoryCleaner {
             oldArtifacts.addAll(artifactoryClient.getVersionsOlderThan(monthsAgo, "$base/$path"))
         }
         removeNewestArtifactOfEachId oldArtifacts
-//        deleteArtifacts oldArtifacts
+        deleteArtifacts oldArtifacts
 
         long t1 = System.currentTimeMillis()
         println "Deleted old artifacts. Took ${(t1 - t0) / 1000} seconds."
