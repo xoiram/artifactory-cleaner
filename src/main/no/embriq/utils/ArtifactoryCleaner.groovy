@@ -5,22 +5,36 @@ package no.embriq.utils
 	@Grab( group='org.slf4j', module='slf4j-simple', version='1.6.2' )
 ])
 import com.github.sardine.DavResource
+import groovy.util.CliBuilder
 
 class ArtifactoryCleaner {
     private ArtifactoryClient artifactoryClient
 
-    private ArtifactoryCleaner() {
-        artifactoryClient = new ArtifactoryClient()
+    private ArtifactoryCleaner(server, port) {
+        artifactoryClient = new ArtifactoryClient(server, port)
     }
 
     static main(args) {
-        def cleaner = new ArtifactoryCleaner()
-        cleaner.start args
+        def cli = new CliBuilder(usage:'ArtifactCleaner', posix:false)
+        cli.s(longOpt:'server','server to run against', required: true, args: 1)
+        cli.p(longOpt:'paths','commaseparated paths to clean', required: true, args: 2)
+        cli.m(longOpt:'months','all artifacts older than monts will be deleted, exception is newest of each major.minor', required: true, args: 3)
+        cli.P(longOpt:'port','port on server', required: true, args: 4)
+        def options = cli.parse(args)
+
+        def paths = options['paths'].split(',')
+
+        def server = options['server']
+        def port = options['port']
+        def months = options['months']
+        def cleaner = new ArtifactoryCleaner(server, port)
+
+        println "server: $server:$port paths: $paths months: $months"
+        cleaner.start paths months
     }
 
-    private start(String... paths) {
+    private start(String[] paths, months) {
         long t0 = System.currentTimeMillis()
-        def months = 3
         def monthsAgo = getDateMonthsAgo months
         List<DavResource> oldArtifacts = new ArrayList<>()
         def base = "/artifactory/libs-release-local"

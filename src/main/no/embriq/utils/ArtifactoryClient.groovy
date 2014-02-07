@@ -10,14 +10,23 @@ import groovyx.net.http.RESTClient
 import org.apache.http.auth.Credentials
 import org.apache.http.auth.UsernamePasswordCredentials
 import org.apache.http.impl.auth.DigestScheme
+
+import org.slf4j.LoggerFactory
+import org.slf4j.Logger
+
 import static groovyx.net.http.Method.DELETE
 
 class ArtifactoryClient {
+    private final Logger logger = LoggerFactory.getLogger(getClass())
     Sardine sf = SardineFactory.begin()
 
     def exclusion = ["embriq-parent"]
 
-    def baseUrl = "http://sonar.embriq.no:8080"
+    final def baseUrl;
+
+    ArtifactoryClient(server, port) {
+        baseUrl = "http://$server:$port"
+    }
 
     List<DavResource> getArtifacts(String path) {
         def url = "${baseUrl}/${path}"
