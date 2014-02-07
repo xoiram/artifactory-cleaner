@@ -20,6 +20,8 @@ class ArtifactoryCleaner {
         cli.p(longOpt:'paths','commaseparated paths to clean', required: true, args: 2)
         cli.m(longOpt:'months','all artifacts older than monts will be deleted, exception is newest of each major.minor', required: true, args: 3)
         cli.P(longOpt:'port','port on server', required: true, args: 4)
+        cli.u(longOpt:'user','username', required: true, args: 5)
+        cli.pw(longOpt:'password','password', required: true, args: 6)
         def options = cli.parse(args)
         if(options == null) {
             return
@@ -29,9 +31,13 @@ class ArtifactoryCleaner {
         def server = options['server']
         def port = options['port']
         def months = Integer.parseInt options['months']
-        def cleaner = new ArtifactoryCleaner(server, port)
+        def username = options['user']
+        def password = options['password']
 
         println "server: $server:$port paths: $paths months: $months"
+        println "$username:$password".bytes.encodeBase64()
+
+        def cleaner = new ArtifactoryCleaner(server, port, username, password)
         cleaner.start(paths, months)
     }
 

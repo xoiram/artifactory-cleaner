@@ -23,9 +23,11 @@ class ArtifactoryClient {
     def exclusion = ["embriq-parent"]
 
     final def baseUrl;
+    final def authheader;
 
-    ArtifactoryClient(server, port) {
+    ArtifactoryClient(server, port, username, password) {
         baseUrl = "http://$server:$port"
+        authheader = "$username:$password".bytes.encodeBase64()
     }
 
     List<DavResource> getArtifacts(String path) {
@@ -68,7 +70,7 @@ class ArtifactoryClient {
 
         if(sf.exists(url)) {
             HTTPBuilder restClient = new HTTPBuilder(url)
-            restClient.headers.put("Authorization", "Basic bWFyaXVzLmdyYXZkYWxAZW1icmlxLm5vOktqZW1wZUZpbnQxOTA2")
+            restClient.headers.put("Authorization", "Basic $authheader")
             println "Trying to delete $url"
             restClient.request(DELETE, {
                 path: path
