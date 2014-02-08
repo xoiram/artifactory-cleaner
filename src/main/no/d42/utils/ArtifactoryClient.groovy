@@ -25,6 +25,7 @@ class ArtifactoryClient {
     long sizeOldArtifacts = 0
     final def baseUrl
     final def authheader
+
     Pattern exclusion
     ArtifactoryClient(String server, String port, String username, String password, String[] exclusion) {
         baseUrl = "http://$server:$port"

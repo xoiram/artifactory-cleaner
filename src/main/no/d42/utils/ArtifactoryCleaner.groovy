@@ -74,7 +74,7 @@ class ArtifactoryCleaner {
         printf "Old artifacts deleted, took ${(t1 - t0) / 1000} seconds. Deleted: %1\$,.2f Mb.\n", mbDeleted
     }
 
-    def deleteArtifacts(List<ArtifactoryResource> artifacts, exclusion) {
+    def deleteArtifacts(List<ArtifactoryResource> artifacts) {
         artifacts.each { artifact ->
             artifactoryClient.deleteArtifact artifact.resource.path
         }
