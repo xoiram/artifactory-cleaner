@@ -76,7 +76,7 @@ class ArtifactoryCleaner {
 
     def deleteArtifacts(List<ArtifactoryResource> artifacts, exclusion) {
         artifacts.each { artifact ->
-            artifactoryClient.deleteArtifact(artifact.resource.path, exclusion)
+            artifactoryClient.deleteArtifact artifact.resource.path
         }
     }
 
