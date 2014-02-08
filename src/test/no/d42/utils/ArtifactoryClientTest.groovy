@@ -1,4 +1,4 @@
-package no.embriq.utils
+package no.d42.utils
 
 class ArtifactoryClientTest extends GroovyTestCase
 {
