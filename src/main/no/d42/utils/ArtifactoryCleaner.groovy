@@ -11,9 +11,9 @@ class ArtifactoryCleaner {
     private ArtifactoryClient artifactoryClient
     boolean dryRun = false
 
-    private ArtifactoryCleaner(server, port, username, password, dry) {
+    private ArtifactoryCleaner(server, port, username, password, dry, exclusion) {
         this.dryRun = dry
-        artifactoryClient = new ArtifactoryClient(server, port, username, password)
+        artifactoryClient = new ArtifactoryClient(server, port, username, password, exclusion)
     }
 
     static main(args) {
@@ -25,6 +25,7 @@ class ArtifactoryCleaner {
         cli.u(longOpt:'user','username', required: true, args: 5)
         cli.pw(longOpt:'password','password', required: true, args: 6)
         cli.d(longOpt:'dryrun','just do a dryrun', required: false)
+        cli.e(longOpt:'exclusion','commaseparated strings to exclude from deletion', required: false, args: 7)
 
         def options = cli.parse(args)
         if(options == null) {
@@ -38,10 +39,15 @@ class ArtifactoryCleaner {
         def username = options['user']
         def password = options['password']
         def dry = options['dryrun']
+        def exclusion = null
+        if(options['exclusion']) {
+            exclusion = options['exclusion'].split(',')
+            println "Excluding artifacts matching: $exclusion"
+        }
 
-        println "server: $server:$port paths: $paths months: $months dryrun: $dry"
+        println "server: $server:$port paths: $paths months: $months dryrun: $dry "
 
-        def cleaner = new ArtifactoryCleaner(server, port, username, password, dry)
+        def cleaner = new ArtifactoryCleaner(server, port, username, password, dry, exclusion)
         cleaner.start(paths, months)
     }
 
@@ -56,10 +62,6 @@ class ArtifactoryCleaner {
             oldArtifacts.addAll(artifactoryClient.getVersionsOlderThan(monthsAgo, "$base/$path"))
         }
 
-        oldArtifacts.each { oldArtifact ->
-            println "Old artifact: ${oldArtifact}"
-        }
-
         removeNewestArtifactOfEachId oldArtifacts
 
         if(!dryRun) {
@@ -72,9 +74,9 @@ class ArtifactoryCleaner {
         printf "Old artifacts deleted, took ${(t1 - t0) / 1000} seconds. Deleted: %1\$,.2f Mb.\n", mbDeleted
     }
 
-    def deleteArtifacts(List<ArtifactoryResource> artifacts) {
+    def deleteArtifacts(List<ArtifactoryResource> artifacts, exclusion) {
         artifacts.each { artifact ->
-            artifactoryClient.deleteArtifact artifact.resource.path
+            artifactoryClient.deleteArtifact(artifact.resource.path, exclusion)
         }
     }
 

@@ -14,48 +14,63 @@ import org.apache.http.impl.auth.DigestScheme
 import org.slf4j.LoggerFactory
 import org.slf4j.Logger
 
+import java.util.regex.Pattern
+
 import static groovyx.net.http.Method.DELETE
 
 class ArtifactoryClient {
     private final Logger logger = LoggerFactory.getLogger(getClass())
     Sardine sf = SardineFactory.begin()
 
-    def exclusion = ["embriq-parent"]
     long sizeOldArtifacts = 0
     final def baseUrl
     final def authheader
-
-    ArtifactoryClient(server, port, username, password) {
+    Pattern exclusion
+    ArtifactoryClient(String server, String port, String username, String password, String[] exclusion) {
         baseUrl = "http://$server:$port"
         authheader = "$username:$password".bytes.encodeBase64()
+        if(exclusion != null) {
+            String pattern = exclusion.join("|")
+            this.exclusion = Pattern.compile(".*($pattern).*");
+            println "Created pattern: ${this.exclusion}"
+        }
     }
 
-    List<DavResource> getArtifacts(String path) {
-        def url = "${baseUrl}/${path}"
-        List<DavResource> allResources = new ArrayList<>()
+    Set<DavResource> getArtifacts(String path, boolean onlyVersionedDirectories) {
+        HashSet<DavResource> allResources = new ArrayList<>()
 
-        List<DavResource> resources = sf.list url, 1
+        def url = "${baseUrl}/${path}"
+        Set<DavResource> resources = new HashSet<>(sf.list(url, 1))
+
         resources.each { resource ->
-            if(resource.path != path) {
-                allResources.add resource
-                if(resource.directory)
-                    allResources.addAll(getArtifacts(resource.path))
+            if(!("${resource.path}/" == path) && !(resource.path == path)) {
+                if(exclusion != null && exclusion.matcher(resource.path).matches()) {
+                    println "Ignoring excluded path $resource from path $path"
+                } else {
+                    if(isVersionedDirectory(resource) && onlyVersionedDirectories) {
+                        println "Adding versioned dir $resource"
+                        allResources.add(resource)
+                    } else if(!resource.directory && !onlyVersionedDirectories) {
+                        allResources.add(resource)
+                    } else if(resource.directory) {
+                        println "Finding children of $resource"
+                        allResources.addAll(getArtifacts(resource.path, onlyVersionedDirectories))
+                    }
+                }
             }
         }
+
         allResources
     }
 
     List<ArtifactoryResource> getVersionsOlderThan(Date date, String path) {
-        def artifacts = getArtifacts path
-        def versionedArtifacts = artifacts.findAll { resource ->
-                resource.directory &&
-                resource.name.trim().matches("^(?:(\\d+)\\.)?(?:(\\d+)\\.)?(\\*|\\d+)\$")
-        }
+        def versionedArtifacts = getArtifacts (path, true)
 
+        println "Got versioned artifacts"
         def oldArtifacts = []
         versionedArtifacts.each{ resource ->
             long childSize = 0
-            def children = getArtifacts(resource.path)
+            def children = getArtifacts(resource.path, false)
             def youngestChild = new Date(0)
             children.each { childResource ->
                 if(childResource.creation.after(youngestChild)) {
@@ -72,12 +87,13 @@ class ArtifactoryClient {
         oldArtifacts
     }
 
-    void deleteArtifact(String path) {
+    private boolean isVersionedDirectory(DavResource resource) {
+        def match = resource.name.trim().matches("^(?:(\\d+)\\.)?(?:(\\d+)\\.)?(\\*|\\d+)\$")
+        resource.directory && match
+    }
+
+    void deleteArtifact(path) {
         def url = "${baseUrl}${path}"
-        exclusion.each { ex ->
-            if(url.contains(ex))
-                return
-        }
 
         HTTPBuilder restClient = new HTTPBuilder(url)
         restClient.headers.put("Authorization", "Basic $authheader")
