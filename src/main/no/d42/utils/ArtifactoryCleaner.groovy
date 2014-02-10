@@ -126,8 +126,10 @@ class ArtifactoryCleaner {
 
     void logArtifacts(artifacts, filename) {
         def file = new File(filename).newWriter(false)
-        artifacts.sort { a,b -> getArtifactId(a.resource).compareTo getArtifactId(b.resource) }.each { sortedArtifact ->
-            file.writeLine(sortedArtifact.resource.path.replaceAll("$repository", ""))
+        artifacts.sort { a,b -> a.youngestChild.compareTo b.youngestChild }.each { sortedArtifact ->
+            def artifact = sortedArtifact.resource.path.replaceAll("$repository", "")
+            def artifactDate = sortedArtifact.youngestChild.format("YYYY-MM-dd")
+            file.writeLine("$artifactDate:$artifact")
         }
         file.close()
     }
