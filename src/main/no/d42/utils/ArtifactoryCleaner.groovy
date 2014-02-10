@@ -23,9 +23,8 @@ class ArtifactoryCleaner {
         cli.m(longOpt:'months','all artifacts older than monts will be deleted, exception is newest of each major.minor', required: true, args: 3)
         cli.P(longOpt:'port','port on server', required: true, args: 4)
         cli.u(longOpt:'user','username', required: true, args: 5)
-        cli.pw(longOpt:'password','password', required: true, args: 6)
+        cli.e(longOpt:'exclusion','commaseparated strings to exclude from deletion', required: false, args: 6)
         cli.d(longOpt:'dryrun','just do a dryrun', required: false)
-        cli.e(longOpt:'exclusion','commaseparated strings to exclude from deletion', required: false, args: 7)
 
         def options = cli.parse(args)
         if(options == null) {
@@ -37,7 +36,8 @@ class ArtifactoryCleaner {
         def port = options['port']
         def months = Integer.parseInt options['months']
         def username = options['user']
-        def password = options['password']
+        printf "Password:"
+        def password = new String(System.console().readPassword())
         def dry = options['dryrun']
         def exclusion = null
         if(options['exclusion']) {
