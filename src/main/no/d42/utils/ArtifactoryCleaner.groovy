@@ -74,16 +74,28 @@ class ArtifactoryCleaner {
         }
 
         removeNewestArtifactOfEachId oldArtifacts
-        logArtifacts(oldArtifacts, "deleted-artifacts.log")
-        
+        logDeletedArtifacts oldArtifacts
+
         printSummary()
 
         if(!dryRun) {
-            deleteArtifacts oldArtifacts
+            println "Continue with deletion? [yes,no]"
+            def cont = System.console().readLine()
+            if(cont == "yes") {
+               deleteArtifacts oldArtifacts
+            } else {
+                println "Aborting.\n"
+            }
         }
 
         long t1 = System.currentTimeMillis()
-        printf "Old artifacts deleted, took ${(t1 - t0) / 1000} seconds.\n"
+        printf "Done. Took ${(t1 - t0) / 1000} seconds.\n"
+    }
+
+    def logDeletedArtifacts(artifacts) {
+        def filename = "deleted-artifacts.log"
+        logArtifacts(artifacts, filename)
+        println "Wrote artifacts that are about to be deleted to $filename"
     }
 
     def deleteArtifacts(List<ArtifactoryResource> artifacts) {
@@ -95,7 +107,7 @@ class ArtifactoryCleaner {
     void printSummary() {
         long bytesDeleted = artifactoryClient.sizeOldArtifacts
         def mbDeleted = bytesDeleted / 1024 / 1024
-        printf "Will delete: %1\$,.2f Mb.\n", mbDeleted
+        printf "Will delete approximately: %1\$,.2f Mb.\n", mbDeleted
     }
 
     void removeNewestArtifactOfEachId(List<ArtifactoryResource> artifacts) {
