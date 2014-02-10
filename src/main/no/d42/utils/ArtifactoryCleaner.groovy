@@ -6,14 +6,21 @@ package no.d42.utils
 ])
 import com.github.sardine.DavResource
 import groovy.util.CliBuilder
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 class ArtifactoryCleaner {
     private ArtifactoryClient artifactoryClient
     boolean dryRun = false
+    def server, username, port, exclusion
+    final def repository = "/artifactory/libs-release-local"
 
-    private ArtifactoryCleaner(server, port, username, password, dry, exclusion) {
+    private ArtifactoryCleaner(server, port, username, dry, exclusion) {
         this.dryRun = dry
-        artifactoryClient = new ArtifactoryClient(server, port, username, password, exclusion)
+        this.server = server
+        this.port = port
+        this.username = username
+        this.exclusion = exclusion
     }
 
     static main(args) {
@@ -36,8 +43,6 @@ class ArtifactoryCleaner {
         def port = options['port']
         def months = Integer.parseInt options['months']
         def username = options['user']
-        printf "Password:"
-        def password = new String(System.console().readPassword())
         def dry = options['dryrun']
         def exclusion = null
         if(options['exclusion']) {
@@ -47,31 +52,38 @@ class ArtifactoryCleaner {
 
         println "server: $server:$port paths: $paths months: $months dryrun: $dry "
 
-        def cleaner = new ArtifactoryCleaner(server, port, username, password, dry, exclusion)
+        def cleaner = new ArtifactoryCleaner(server, port, username, dry, exclusion)
         cleaner.start(paths, months)
     }
 
     private start(String[] paths, int months) {
         long t0 = System.currentTimeMillis()
         def monthsAgo = getDateMonthsAgo months
+
+        printf "Starting artifactory-cleaner\n"
+        printf "Password:"
+        def password = new String(System.console().readPassword())
+
+        artifactoryClient = new ArtifactoryClient(server, port, username, password, exclusion)
+
         println "Deleting artifacts older than: $monthsAgo"
         List<ArtifactoryResource> oldArtifacts = new ArrayList<>()
-        def base = "/artifactory/libs-release-local"
         paths.each { path ->
             println "Cleaning $path for artifacts older than $months months"
-            oldArtifacts.addAll(artifactoryClient.getVersionsOlderThan(monthsAgo, "$base/$path"))
+            oldArtifacts.addAll(artifactoryClient.getVersionsOlderThan(monthsAgo, "$repository/$path"))
         }
 
         removeNewestArtifactOfEachId oldArtifacts
+        logArtifacts(oldArtifacts, "deleted-artifacts.log")
+        
+        printSummary()
 
         if(!dryRun) {
             deleteArtifacts oldArtifacts
         }
 
         long t1 = System.currentTimeMillis()
-        long bytesDeleted = artifactoryClient.sizeOldArtifacts
-        def mbDeleted = bytesDeleted / 1024 / 1024
-        printf "Old artifacts deleted, took ${(t1 - t0) / 1000} seconds. Deleted: %1\$,.2f Mb.\n", mbDeleted
+        printf "Old artifacts deleted, took ${(t1 - t0) / 1000} seconds.\n"
     }
 
     def deleteArtifacts(List<ArtifactoryResource> artifacts) {
@@ -80,7 +92,14 @@ class ArtifactoryCleaner {
         }
     }
 
+    void printSummary() {
+        long bytesDeleted = artifactoryClient.sizeOldArtifacts
+        def mbDeleted = bytesDeleted / 1024 / 1024
+        printf "Will delete: %1\$,.2f Mb.\n", mbDeleted
+    }
+
     void removeNewestArtifactOfEachId(List<ArtifactoryResource> artifacts) {
+        printf "Removing newest artifact of each groupId:artifactId:major.minor version."
         Map<String, ArtifactoryResource> newestDateForArtifactId = new HashMap<>()
         artifacts.each { artifact ->
             String artifactId = getArtifactId(artifact.resource)
@@ -88,12 +107,17 @@ class ArtifactoryCleaner {
             if(newestArtifact == null || newestArtifact.youngestChild.before(artifact.youngestChild))
                 newestDateForArtifactId.put artifactId, artifact
         }
-        println "Spared artifacts that where older than specified age, but newest of their respective major.minor version: "
-        newestDateForArtifactId.values().sort { a,b -> getArtifactId(a.resource).compareTo getArtifactId(b.resource) }.each { newestArtifact ->
-            println "${newestArtifact}"
-        }
-        println ""
+        println "Spared artifacts that where older than specified age, but newest of their respective major.minor version."
+        logArtifacts(newestDateForArtifactId.values(), "spared-artifacts.log")
         artifacts.removeAll newestDateForArtifactId.values()
+    }
+
+    void logArtifacts(artifacts, filename) {
+        def file = new File(filename).newWriter(false)
+        artifacts.sort { a,b -> getArtifactId(a.resource).compareTo getArtifactId(b.resource) }.each { sortedArtifact ->
+            file.writeLine(sortedArtifact.resource.path.replaceAll("$repository", ""))
+        }
+        file.close()
     }
 
     private String getArtifactId(DavResource artifact) {

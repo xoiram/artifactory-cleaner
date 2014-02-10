@@ -49,7 +49,6 @@ class ArtifactoryClient {
                     println "Ignoring excluded path $resource from path $path"
                 } else {
                     if(isVersionedDirectory(resource) && onlyVersionedDirectories) {
-                        println "Adding versioned dir $resource"
                         allResources.add(resource)
                     } else if(!resource.directory && !onlyVersionedDirectories) {
                         allResources.add(resource)
@@ -67,7 +66,7 @@ class ArtifactoryClient {
     List<ArtifactoryResource> getVersionsOlderThan(Date date, String path) {
         def versionedArtifacts = getArtifacts (path, true)
 
-        println "Got versioned artifacts"
+        println "Determining age and size of artifacts."
         def oldArtifacts = []
         versionedArtifacts.each{ resource ->
             long childSize = 0
