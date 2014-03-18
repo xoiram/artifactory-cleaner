@@ -33,6 +33,7 @@ class ArtifactoryCleaner {
         cli.u(longOpt:'password','password', required: false, args: 6)
         cli.e(longOpt:'exclusion','commaseparated strings to exclude from deletion', required: false, args: 7)
         cli.d(longOpt:'dryrun','just do a dryrun', required: false)
+        cli.d(longOpt:'jenkins','don\'t ask for confirmation before deleting', required: false)
 
         def options = cli.parse(args)
         if(options == null) {
@@ -51,14 +52,15 @@ class ArtifactoryCleaner {
             exclusion = options['exclusion'].split(',')
             println "Excluding artifacts matching: $exclusion"
         }
+        def jenkins = options['jenkins']
 
-        println "server: $server:$port paths: $paths months: $months dryrun: $dry "
+        println "server: $server:$port paths: $paths months: $months dryrun: $dry jenkins: $jenkins"
 
         def cleaner = new ArtifactoryCleaner(server, port, username, dry, exclusion)
-        cleaner.start(paths, months, password)
+        cleaner.start(paths, months, password, jenkins)
     }
 
-    private start(String[] paths, int months, def password) {
+    private start(String[] paths, int months, def password, def jenkins) {
         long t0 = System.currentTimeMillis()
         def monthsAgo = getDateMonthsAgo months
 
@@ -84,7 +86,13 @@ class ArtifactoryCleaner {
 
         if(!dryRun) {
             println "Continue with deletion? [yes,no]"
-            def cont = System.console().readLine()
+            def cont = null
+            if(System.console() != null && jenkins == null) {
+                cont = System.console().readLine()
+            } else if (jenkins != null) {
+                cont = "yes"
+            }
+            
             if(cont == "yes") {
                deleteArtifacts oldArtifacts
             } else {
