@@ -87,9 +87,9 @@ class ArtifactoryCleaner {
         if(!dryRun) {
             println "Continue with deletion? [yes,no]"
             def cont = null
-            if(System.console() != null && jenkins == null) {
+            if(System.console() != null && !jenkins) {
                 cont = System.console().readLine()
-            } else if (jenkins != null) {
+            } else if (jenkins) {
                 cont = "yes"
             }
             
