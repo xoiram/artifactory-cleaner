@@ -30,7 +30,8 @@ class ArtifactoryCleaner {
         cli.m(longOpt:'months','all artifacts older than monts will be deleted, exception is newest of each major.minor', required: true, args: 3)
         cli.P(longOpt:'port','port on server', required: true, args: 4)
         cli.u(longOpt:'user','username', required: true, args: 5)
-        cli.e(longOpt:'exclusion','commaseparated strings to exclude from deletion', required: false, args: 6)
+        cli.u(longOpt:'password','password', required: false, args: 6)
+        cli.e(longOpt:'exclusion','commaseparated strings to exclude from deletion', required: false, args: 7)
         cli.d(longOpt:'dryrun','just do a dryrun', required: false)
 
         def options = cli.parse(args)
@@ -43,6 +44,7 @@ class ArtifactoryCleaner {
         def port = options['port']
         def months = Integer.parseInt options['months']
         def username = options['user']
+        def password = options['password']
         def dry = options['dryrun']
         def exclusion = null
         if(options['exclusion']) {
@@ -53,16 +55,18 @@ class ArtifactoryCleaner {
         println "server: $server:$port paths: $paths months: $months dryrun: $dry "
 
         def cleaner = new ArtifactoryCleaner(server, port, username, dry, exclusion)
-        cleaner.start(paths, months)
+        cleaner.start(paths, months, password)
     }
 
-    private start(String[] paths, int months) {
+    private start(String[] paths, int months, def password) {
         long t0 = System.currentTimeMillis()
         def monthsAgo = getDateMonthsAgo months
 
         printf "Starting artifactory-cleaner\n"
-        printf "Password:"
-        def password = new String(System.console().readPassword())
+        if(password == null) {
+            printf "Password:"
+            password = new String(System.console().readPassword())
+        }
 
         artifactoryClient = new ArtifactoryClient(server, port, username, password, exclusion)
 
