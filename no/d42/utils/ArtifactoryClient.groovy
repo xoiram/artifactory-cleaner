@@ -88,7 +88,7 @@ class ArtifactoryClient {
     }
 
     private boolean isVersionedDirectory(DavResource resource) {
-        def match = resource.name.trim().matches("^(?:(\\d+)\\.)?(?:(\\d+)\\.)?(\\*|\\d+)\$")
+        def match = resource.name.trim().matches("^(?:(\\d+)\\.)+?(\\*|\\d+)\$")
         resource.directory && match
     }
 
